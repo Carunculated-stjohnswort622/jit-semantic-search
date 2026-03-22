@@ -37,7 +37,7 @@ results = searcher.search(
 ## Installation
 
 ```bash
-pip install jit-semantic-search
+uv pip install jit-semantic-search
 ```
 
 From source:
