@@ -1,30 +1,29 @@
 # jit-semantic-search
 
-Semantic search without pre-processing. Query any text corpus instantly — no embeddings to pre-compute, no vector store to load, no index to build.
+`grep` for semantic search. Query any text data without setting up a vector store first.
 
 ## The Problem
 
-You're building an AI agent that calls the Zendesk API and gets back 10,000 tickets. You need to find the ones about "frustrated customers unable to complete onboarding." With traditional vector search (pgvector, Pinecone, etc.), you'd need to:
+Vector search tools like pgvector and Pinecone are great when you have a stable corpus you'll query repeatedly. But in agentic workflows, you often need to search data you just got and may never see again:
 
-1. Chunk the tickets
-2. Embed each one (44s for 10K docs)
-3. Load into a vector store (5+ minutes)
-4. Build an HNSW index
-5. *Then* search
+- An agent pulls 5,000 product listings from a supplier API to find ones matching a spec
+- A research workflow fetches hundreds of papers from arXiv and needs to find the relevant ones
+- A support agent queries three different internal APIs and needs to search across all the responses together
+- A data pipeline pulls customer feedback from Slack, Intercom, and email, and needs to find mentions of a specific issue
 
-That's 6 minutes before your first result. In an agentic context with JIT tool calls, this is unacceptable — you need results in under a second, just like `grep` but with semantic understanding.
+For these one-off queries across disparate data sources, setting up a vector store doesn't make sense. You'd spend minutes on embedding, loading, and indexing just to run a single search and throw it away. That's like setting up an Elasticsearch cluster to grep a log file.
 
-**jit-semantic-search** gives you vector-search-quality results with zero preprocessing:
+**jit-semantic-search** is the semantic equivalent of grep. Pass in text, get results:
 
 ```python
 from jit_search import JITSearch
 
 searcher = JITSearch(strategy="cascade")
 
-# tickets = fetch_from_zendesk_api()  # 10K tickets
+# products = fetch_from_supplier_api()
 results = searcher.search(
-    "frustrated customers unable to complete onboarding",
-    [t["subject"] + " " + t["description"] for t in tickets],
+    "waterproof bluetooth speaker under 50 dollars",
+    [p["title"] + " " + p["description"] for p in products],
     top_k=10,
 )
 ```
@@ -35,10 +34,10 @@ results = searcher.search(
 pip install jit-semantic-search
 ```
 
-Or from source:
+From source:
 
 ```bash
-git clone https://github.com/your-org/jit-semantic-search.git
+git clone https://github.com/jackyliang/jit-semantic-search.git
 cd jit-semantic-search
 uv venv && uv pip install -e .
 ```
@@ -50,10 +49,9 @@ uv venv && uv pip install -e .
 ```python
 from jit_search import JITSearch
 
-# Choose your strategy based on speed/quality needs
-searcher = JITSearch(strategy="cascade")  # best quality/speed tradeoff
+searcher = JITSearch(strategy="cascade")
 
-results = searcher.search("angry customer billing issue", documents, top_k=10)
+results = searcher.search("waterproof speaker", documents, top_k=10)
 for r in results:
     print(f"[{r.score:.3f}] Doc #{r.index}: {r.document[:80]}")
 ```
@@ -68,18 +66,18 @@ python -m jit_search serve
 ```bash
 curl -X POST http://localhost:8000/search \
   -H "Content-Type: application/json" \
-  -d '{"query": "billing dispute", "documents": ["doc1...", "doc2..."], "top_k": 5}'
+  -d '{"query": "waterproof speaker", "documents": ["doc1...", "doc2..."], "top_k": 5}'
 ```
 
-Search structured objects (Zendesk tickets, CRM records, etc.):
+Search structured objects directly:
 
 ```bash
 curl -X POST http://localhost:8000/search/objects \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "frustrated customer",
-    "objects": [{"id": 1, "subject": "Login issue", "body": "I cant log in..."}],
-    "text_fields": ["subject", "body"],
+    "query": "waterproof speaker",
+    "objects": [{"id": 1, "title": "BT Speaker", "desc": "IPX7 rated..."}],
+    "text_fields": ["title", "desc"],
     "top_k": 5
   }'
 ```
@@ -87,11 +85,9 @@ curl -X POST http://localhost:8000/search/objects \
 ### CLI
 
 ```bash
-# Pipe JSON documents
-echo '["ticket 1 text", "ticket 2 text"]' | jit-search "billing problem" --top-k 5
+echo '["doc1", "doc2", "doc3"]' | jit-search "search query" --top-k 5
 
-# From a file
-jit-search "onboarding issue" --file tickets.json --text-fields subject,description
+jit-search "search query" --file data.json --text-fields title,description
 ```
 
 ## Strategies
@@ -100,83 +96,71 @@ jit-search "onboarding issue" --file tickets.json --text-fields subject,descript
 |---|---|---|---|
 | `cascade` | 0.956 | 228ms | **Default.** Best quality/speed tradeoff |
 | `neural` | 0.974 | 1,874ms | Maximum quality, small corpora |
-| `cascade_v2` | 0.861 | 55ms | Fastest semantic search |
+| `cascade_v2` | 0.861 | 55ms | Fast semantic search |
 | `projection` | 0.696 | 14ms | Lightweight, no neural model |
-| `lexical` | 0.689 | 0.4ms | Instant keyword search |
+| `lexical` | 0.689 | 0.4ms | Keyword search |
 | `rptree` | 0.621 | 5ms | Sub-linear TF-IDF search |
 
 ## How It Works
 
 The `cascade` strategy combines three techniques:
 
-1. **SPS pre-filter (15ms)**: A novel Semantic Projection Search that maps TF-IDF features through a learned linear projection into embedding space, fused with BM25 scores. Surfaces the top-50 candidates from the full corpus.
+1. **SPS pre-filter (~15ms)**: Semantic Projection Search maps TF-IDF features through a learned linear projection into embedding space, fused with BM25 scores. Surfaces the top candidates from the full corpus without running a neural model.
 
-2. **Neural reranking (~200ms)**: A streaming bi-encoder (BGE-small via ONNX) re-embeds only the 50 candidates on-the-fly and reranks by cosine similarity. Embeddings are discarded after use — O(k) memory.
+2. **Neural reranking (~200ms)**: A streaming bi-encoder (BGE-small via ONNX) embeds only the top candidates on-the-fly and reranks by cosine similarity. Embeddings are discarded after comparison.
 
-3. **Adaptive scaling**: Automatically adjusts candidate count based on corpus size (5% of corpus, up to 500).
+3. **Adaptive scaling**: Candidate count adjusts based on corpus size (5% of corpus, up to 500).
 
 No documents are pre-embedded. No index is built. No vector store is needed.
 
 ### Performance Notes
 
-The search latencies reported below are **warm-model** numbers (models already loaded in memory). On first call, expect an additional 2-5s for model loading (fastembed ONNX model + projection matrix). Models stay warm for subsequent calls.
+The search latencies above are **warm-model** numbers (models already in memory). On the first call, model loading adds 2-5s. Models stay warm for subsequent calls.
 
-These numbers also don't include the time to fetch documents from an external API. A realistic first-call breakdown for 10K docs:
+These numbers also don't include API fetch time for the source data. A realistic breakdown for 10K documents:
 
 | Step | Time |
 |---|---|
-| API fetch (network) | 2-5s (varies) |
+| API fetch (network) | varies |
 | Model cold start (one-time) | 2-5s |
 | Search | ~1s |
-| **First call total** | **~5-11s** |
-| **Subsequent calls** | **~1s** |
+| **Subsequent searches** | **~1s** |
 
-Still significantly faster than pgvector's 6 minutes of preprocessing, but the "under 1 second" headline is the steady-state number.
+## Evaluation
 
-## Evaluation Results
+Evaluated using [BEIR methodology](https://github.com/beir-cellar/beir) (NDCG@10 as primary metric).
 
-Evaluated using **BEIR methodology** (NDCG@10 primary metric) on a synthetic support ticket dataset.
+### vs pgvector
 
-### 400 Documents
+pgvector requires preprocessing (embed + load + build HNSW index) before the first search. JIT doesn't. If you're going to search the same corpus many times, pgvector amortizes that cost and wins. For one-off searches, JIT is faster end-to-end.
 
-| Strategy | NDCG@10 | MRR@10 | Search p50 | Preprocess | Total TTR |
-|---|---|---|---|---|---|
-| **pgvector (HNSW)** | 0.974 | 1.000 | 23ms | **11.9s** | **11,903ms** |
-| **JIT cascade** | 0.956 | 1.000 | 228ms | **0s** | **228ms** |
+**400 documents:**
 
-JIT cascade: **52x faster to first result**, 98% of pgvector quality.
+| | NDCG@10 | Search latency | Preprocessing | Time to first result |
+|---|---|---|---|---|
+| pgvector | 0.974 | 23ms | 11.9s | 11.9s |
+| JIT cascade | 0.956 | 228ms | 0s | 228ms |
 
-### 10,000 Documents
+**10,000 documents:**
 
-| Strategy | NDCG@10 | MRR@10 | Search p50 | Preprocess | Total TTR |
-|---|---|---|---|---|---|
-| **pgvector (HNSW)** | 0.833 | — | 36ms | **356.8s** | **356,877ms** |
-| **JIT cascade** | 0.917 | — | 974ms | **0s** | **974ms** |
+| | NDCG@10 | Search latency | Preprocessing | Time to first result |
+|---|---|---|---|---|
+| pgvector | 0.833 | 36ms | 356s | 356s |
+| JIT cascade | 0.917 | ~1s | 0s | ~1s |
 
-JIT cascade: **367x faster to first result**, *higher quality* than pgvector at this scale.
-
-### Crossover Analysis
-
-pgvector's pre-processing cost amortizes after repeated queries on the same corpus:
-- **400 docs**: ~52 queries to break even
-- **10K docs**: ~384 queries to break even
-
-If you're searching the same static corpus hundreds of times, use pgvector. If you're searching dynamic data from API calls in an agentic workflow, use JIT.
+pgvector amortizes its preprocessing cost after roughly 50-400 repeated queries on the same corpus, depending on corpus size. Use pgvector for stable, repeatedly-queried data. Use JIT for one-off searches across dynamic or disparate data sources.
 
 ## Related Work
 
-The cascade architecture (cheap approximate pre-filter → expensive exact reranking on a small candidate set) draws inspiration from [LEANN](https://arxiv.org/abs/2506.08276) (Lee et al., 2025), which uses a two-level search with PQ-compressed approximate distances and on-demand embedding recomputation for edge-device RAG. Our system applies a similar multi-fidelity philosophy but in a fully JIT context where no pre-built index exists.
+The cascade architecture draws inspiration from [LEANN](https://arxiv.org/abs/2506.08276) (Lee et al., 2025), which uses a two-level search with PQ-compressed approximate distances and on-demand embedding recomputation for edge-device RAG. This library applies a similar multi-fidelity approach in a fully JIT context where no pre-built index exists.
 
 ## Areas for Improvement
 
-We've identified several research directions that could push this further:
-
-- **Non-linear projection**: Replace the linear projection matrix (SPS) with a small MLP for better semantic quality without neural model inference
-- **Query expansion**: Use an LLM to expand ambiguous queries ("wish list for product updates" → "feature request", "product improvement suggestion") before search
-- **Better embedding models**: Swap BGE-small for a faster/better model (BGE-micro for speed, E5-large for quality)
-- **Cross-encoder with domain fine-tuning**: The cross-encoder reranker underperforms the bi-encoder on our dataset because ms-marco is trained on web search, not support tickets
-- **JIT Product Quantization**: PQ-encode documents on-the-fly for hardware-accelerated distance computation (inspired by [LEANN](https://arxiv.org/abs/2506.08276))
-- **Streaming graph construction**: Build an approximate k-NN graph incrementally as documents stream in, enabling O(log n) search without a pre-built index
+- **Non-linear projection**: Replace the linear SPS projection with a small MLP
+- **Query expansion**: Use an LLM to expand ambiguous queries before search
+- **Better embedding models**: Swap BGE-small for faster or higher-quality models
+- **Domain-specific cross-encoder**: The cross-encoder reranker (cascade_v2) currently uses ms-marco, which is trained on web search. A domain-tuned model would likely improve quality.
+- **JIT Product Quantization**: PQ-encode documents on-the-fly for faster distance computation (from the LEANN paper)
 
 ## License
 
