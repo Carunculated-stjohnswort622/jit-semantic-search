@@ -147,6 +147,10 @@ pgvector's pre-processing cost amortizes after repeated queries on the same corp
 
 If you're searching the same static corpus hundreds of times, use pgvector. If you're searching dynamic data from API calls in an agentic workflow, use JIT.
 
+## Related Work
+
+The cascade architecture (cheap approximate pre-filter → expensive exact reranking on a small candidate set) draws inspiration from [LEANN](https://arxiv.org/abs/2506.08276) (Lee et al., 2025), which uses a two-level search with PQ-compressed approximate distances and on-demand embedding recomputation for edge-device RAG. Our system applies a similar multi-fidelity philosophy but in a fully JIT context where no pre-built index exists.
+
 ## Areas for Improvement
 
 We've identified several research directions that could push this further:
