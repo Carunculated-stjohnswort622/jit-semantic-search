@@ -1,5 +1,7 @@
 # jit-semantic-search
 
+> **Note:** This is a research project exploring JIT semantic search techniques. Not production-ready.
+
 `grep` for semantic search. Query any text data without setting up a vector store first.
 
 ## The Problem
