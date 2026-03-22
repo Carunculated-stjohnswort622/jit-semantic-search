@@ -4,16 +4,20 @@
 
 `grep` for semantic search. Query any text data without setting up a vector store first.
 
-## The Problem
+## When to Use This
 
-Vector search tools like pgvector and Pinecone are great when you have a stable corpus you'll query repeatedly. But in agentic workflows, you often need to search data you just got and may never see again:
+If you're running repeated searches on the same data, use pgvector. It's faster at query time and well-suited for that.
+
+But in agentic workflows, you're often pulling data from different APIs, searching it once, and moving on. Standing up a vector store for each of these one-off queries adds complexity and wastes time. You'd be embedding, loading, and indexing data just to run a single search and throw it all away.
+
+That's where JIT semantic search comes in. Some examples:
 
 - An agent pulls 5,000 product listings from a supplier API to find ones matching a spec
 - A research workflow fetches hundreds of papers from arXiv and needs to find the relevant ones
 - A support agent queries three different internal APIs and needs to search across all the responses together
 - A data pipeline pulls customer feedback from Slack, Intercom, and email, and needs to find mentions of a specific issue
 
-For these one-off queries across disparate data sources, setting up a vector store doesn't make sense. You'd spend minutes on embedding, loading, and indexing just to run a single search and throw it away. That's like setting up an Elasticsearch cluster to grep a log file.
+No database, no preprocessing pipeline, no cleanup. Just pass in text and get results.
 
 **jit-semantic-search** is the semantic equivalent of grep. Pass in text, get results:
 
